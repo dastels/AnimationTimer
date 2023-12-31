@@ -24,7 +24,7 @@ long frame_time;
 long frame_start_time;
 
 enum State {IDLE, MODE, RUN, LOWPOWER};
-char *StateNames {"IDLE", "MODE", "RUN", "LOWPOWER"};
+char *StateNames[] = {"IDLE", "MODE", "RUN", "LOWPOWER"};
 enum State current_state;
 
 long idle_timeout_start;
