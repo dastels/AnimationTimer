@@ -147,7 +147,8 @@ void loop()
      run_button.update();
      mode_button.update();
 
-     if (current_state == LOWPOWER) {
+     switch (current_state) {
+     case LOWPOWER:
           if (mode_button.fell() || run_button.fell()) { // get out of low power mode
                update_frames_display();
                idle_timeout_start = millis();
@@ -158,7 +159,8 @@ void loop()
                display.writeDisplay();
                low_power_indicator_toggle_time = millis() + (low_power_indicator_state ? low_power_toggle_on_time : low_power_toggle_off_time);
           }
-     } else if (current_state == IDLE) {
+          break;
+     case IDLE:
           if (idle_timeout_start && (millis() > idle_timeout_start + IDLE_TIMEOUT) && !is_usb_connected()) {
                logger->debug("Idle timeout - turning off LEDs");
                display.clear();
@@ -185,15 +187,15 @@ void loop()
                frames = 0;
                update_time_display(seconds, frames);
           }
-     } else if (current_state == MODE) {
+          break;
+     case MODE:
           if (mode_button.rose()) {
                idle_timeout_start = millis();
                logger->debug("Idle timeout enabled");
                change_state(IDLE);
-               // display.clear();
-               // display.writeDisplay();
           }
-     } else if (current_state == RUN) {
+          break;
+     case  RUN:
           if (!run_button.read()) { // run button held down
                if (millis() >= frame_start_time + frame_time) { // time to advance count?
                     frame_start_time = millis();
@@ -209,5 +211,6 @@ void loop()
                logger->debug("Idle timeout enabled");
                change_state(IDLE);
           }
+          break;
      }
 }
