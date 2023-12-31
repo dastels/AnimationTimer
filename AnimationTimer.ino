@@ -47,7 +47,6 @@ Logger *logger;
 
 boolean is_usb_connected(void)
 {
-     return false;
      float val = (float(analogRead(A2)) / 1024.0) * 6.6;
      return val > 4.0;
 }
@@ -153,79 +152,61 @@ void loop()
                display.writeDisplay();
                low_power_indicator_toggle_time = millis() + (low_power_indicator_state ? low_power_toggle_on_time : low_power_toggle_off_time);
           }
-          return;
-     }
-
-     if (current_state == NONE && idle_timeout_start && (millis() > idle_timeout_start + IDLE_TIMEOUT) && !is_usb_connected()) {
-          logger->debug("Idle timeout - turning off LEDs");
-          display.clear();
-          display.writeDigitRaw(1, 0b10000000);
-          display.writeDisplay();
-          low_power_indicator_toggle_time = millis() + low_power_toggle_on_time;
-          low_power_indicator_state = true;
-          current_state = LOWPOWER;
-          logger->debug("State now LOWPOWER");
-          return;
-     }
-
-     // mode button pressed while in NONE state
-     if (current_state == NONE && mode_button.fell()) {
-          idle_timeout_start = 0;
-          logger->debug("Idle timeout disabled");
-          current_state = MODE;
-          logger->debug("State now MODE");
-          mode++;
-          mode %= number_of_modes;
-          logger->debug("F/s now %d", modes[mode]);
-          frame_time = 1000 / modes[mode];
-          update_frames_display();
-          return;
-     }
-
-     // mode_button released while in MODE state
-     if (current_state == MODE && mode_button.rose()) {
-          idle_timeout_start = millis();
-          logger->debug("Idle timeout enabled");
-          current_state = NONE;
-          logger->debug("State now NONE");
-          // display.clear();
-          // display.writeDisplay();
-          return;
-     }
-
-     // run button pressed while in NONE state
-     if (current_state == NONE && run_button.fell()) { // run button first pressed
-          idle_timeout_start = 0;
-          logger->debug("Idle timeout disabled");
-          current_state = RUN;
-          logger->debug("State now RUN");
-          frame_start_time = millis();
-          seconds = 0;
-          frames = 0;
-          update_time_display(seconds, frames);
-          return;
-     }
-
-     // run button held while in RUN state
-     if (current_state == RUN && !run_button.read()) { // run button held down
-          if (millis() >= frame_start_time + frame_time) { // time to advance count?
+     } else if (current_state == NONE) {
+          if (idle_timeout_start && (millis() > idle_timeout_start + IDLE_TIMEOUT) && !is_usb_connected()) {
+               logger->debug("Idle timeout - turning off LEDs");
+               display.clear();
+               display.writeDigitRaw(1, 0b10000000);
+               display.writeDisplay();
+               low_power_indicator_toggle_time = millis() + low_power_toggle_on_time;
+               low_power_indicator_state = true;
+               current_state = LOWPOWER;
+               logger->debug("State now LOWPOWER");
+          } else if (mode_button.fell()) {
+               idle_timeout_start = 0;
+               logger->debug("Idle timeout disabled");
+               current_state = MODE;
+               logger->debug("State now MODE");
+               mode++;
+               mode %= number_of_modes;
+               logger->debug("F/s now %d", modes[mode]);
+               frame_time = 1000 / modes[mode];
+               update_frames_display();
+          } else if (run_button.fell()) {
+               idle_timeout_start = 0;
+               logger->debug("Idle timeout disabled");
+               current_state = RUN;
+               logger->debug("State now RUN");
                frame_start_time = millis();
-               frames++;
-               if (frames == modes[mode]) {
-                    frames = 0;
-                    seconds++;
-               }
+               seconds = 0;
+               frames = 0;
                update_time_display(seconds, frames);
           }
-          return;
-     }
-
-     // run button released while in RUN mode
-     if (current_state == RUN && run_button.rose()) {
-          idle_timeout_start = millis();
-          logger->debug("Idle timeout enabled");
-          current_state = NONE;
-          logger->debug("State now NONE");
-          return;
+     } else if (current_state == MODE) {
+          if (mode_button.rose()) {
+               idle_timeout_start = millis();
+               logger->debug("Idle timeout enabled");
+               current_state = NONE;
+               logger->debug("State now NONE");
+               // display.clear();
+               // display.writeDisplay();
+          }
+     } else if (current_state == RUN) {
+          if (!run_button.read()) { // run button held down
+               if (millis() >= frame_start_time + frame_time) { // time to advance count?
+                    frame_start_time = millis();
+                    frames++;
+                    if (frames == modes[mode]) {
+                         frames = 0;
+                         seconds++;
+                    }
+                    update_time_display(seconds, frames);
+               }
+          } else if (run_button.rose()) {
+               idle_timeout_start = millis();
+               logger->debug("Idle timeout enabled");
+               current_state = NONE;
+               logger->debug("State now NONE");
+          }
      }
 }
