@@ -24,6 +24,7 @@ long frame_time;
 long frame_start_time;
 
 enum State {IDLE, MODE, RUN, LOWPOWER};
+char *StateNames {"IDLE", "MODE", "RUN", "LOWPOWER"};
 enum State current_state;
 
 long idle_timeout_start;
@@ -102,6 +103,12 @@ void update_frames_display()
      display.writeDisplay();
 }
 
+void change_state(enum State new_state)
+{
+     current_state = new_state;
+     logger->debug("State now %s", StateNames[new_state]);
+}
+
 
 void setup()
 {
@@ -123,8 +130,7 @@ void setup()
      //set state
      mode = DEFAULT_MODE;
      frame_time = 1000/modes[mode];
-     current_state = IDLE;
-     logger->debug("State now IDLE");
+     change_state(IDLE);
      logger->debug("USB %s connected", is_usb_connected() ? "is" : "is not");
      idle_timeout_start = millis();
      if (modes[mode] > 9) {
@@ -145,7 +151,7 @@ void loop()
           if (mode_button.fell() || run_button.fell()) { // get out of low power mode
                update_frames_display();
                idle_timeout_start = millis();
-               current_state = IDLE;
+               change_state(IDLE);
           } else if (millis() > low_power_indicator_toggle_time) { // toggle the indicator if it's time
                low_power_indicator_state = !low_power_indicator_state;
                display.writeDigitRaw(1, low_power_indicator_state ? 0b10000000 : 0b00000000);
@@ -160,13 +166,11 @@ void loop()
                display.writeDisplay();
                low_power_indicator_toggle_time = millis() + low_power_toggle_on_time;
                low_power_indicator_state = true;
-               current_state = LOWPOWER;
-               logger->debug("State now LOWPOWER");
+               change_state(LOWPOWER);
           } else if (mode_button.fell()) {
                idle_timeout_start = 0;
                logger->debug("Idle timeout disabled");
-               current_state = MODE;
-               logger->debug("State now MODE");
+               change_state(MODE);
                mode++;
                mode %= number_of_modes;
                logger->debug("F/s now %d", modes[mode]);
@@ -175,8 +179,7 @@ void loop()
           } else if (run_button.fell()) {
                idle_timeout_start = 0;
                logger->debug("Idle timeout disabled");
-               current_state = RUN;
-               logger->debug("State now RUN");
+               change_state(RUN);
                frame_start_time = millis();
                seconds = 0;
                frames = 0;
@@ -186,8 +189,7 @@ void loop()
           if (mode_button.rose()) {
                idle_timeout_start = millis();
                logger->debug("Idle timeout enabled");
-               current_state = IDLE;
-               logger->debug("State now IDLE");
+               change_state(IDLE);
                // display.clear();
                // display.writeDisplay();
           }
@@ -205,8 +207,7 @@ void loop()
           } else if (run_button.rose()) {
                idle_timeout_start = millis();
                logger->debug("Idle timeout enabled");
-               current_state = IDLE;
-               logger->debug("State now IDLE");
+               change_state(IDLE);
           }
      }
 }
