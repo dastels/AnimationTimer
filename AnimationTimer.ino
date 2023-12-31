@@ -110,6 +110,12 @@ void change_state(enum State new_state)
 }
 
 
+void set_lowpower_timeout(bool enable)
+{
+     idle_timeout_start = enable ? millis() : 0;
+     logger->debug("Idle timeout %sabled", enable ? "en" : "dis");
+}
+
 void setup()
 {
      // initialize the display
@@ -151,7 +157,7 @@ void loop()
      case LOWPOWER:
           if (mode_button.fell() || run_button.fell()) { // get out of low power mode
                update_frames_display();
-               idle_timeout_start = millis();
+               set_lowpower_timeout(true);
                change_state(IDLE);
           } else if (millis() > low_power_indicator_toggle_time) { // toggle the indicator if it's time
                low_power_indicator_state = !low_power_indicator_state;
@@ -170,8 +176,7 @@ void loop()
                low_power_indicator_state = true;
                change_state(LOWPOWER);
           } else if (mode_button.fell()) {
-               idle_timeout_start = 0;
-               logger->debug("Idle timeout disabled");
+               set_lowpower_timeout(false);
                change_state(MODE);
                mode++;
                mode %= number_of_modes;
@@ -179,8 +184,7 @@ void loop()
                frame_time = 1000 / modes[mode];
                update_frames_display();
           } else if (run_button.fell()) {
-               idle_timeout_start = 0;
-               logger->debug("Idle timeout disabled");
+               set_lowpower_timeout(false);
                change_state(RUN);
                frame_start_time = millis();
                seconds = 0;
@@ -190,8 +194,7 @@ void loop()
           break;
      case MODE:
           if (mode_button.rose()) {
-               idle_timeout_start = millis();
-               logger->debug("Idle timeout enabled");
+               set_lowpower_timeout(true);
                change_state(IDLE);
           }
           break;
@@ -207,8 +210,7 @@ void loop()
                     update_time_display(seconds, frames);
                }
           } else if (run_button.rose()) {
-               idle_timeout_start = millis();
-               logger->debug("Idle timeout enabled");
+               set_lowpower_timeout(true);
                change_state(IDLE);
           }
           break;
